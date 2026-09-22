@@ -5,7 +5,7 @@ const loading = document.getElementById('loading');
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
 
-// Função para buscar os detalhes individuais de um Pokémon
+// Função para buscar os detalhes individuais de um 
 async function fetchPokemonData(urlOrName) {
 	const url = urlOrName.startsWith('http')
 		? urlOrName
