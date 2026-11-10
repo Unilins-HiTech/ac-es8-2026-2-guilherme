@@ -1,4 +1,4 @@
-const API_URL = '/pacientes';
+cconst API_URL = 'https://ac-es8-2026-2-guilherme.onrender.com/pacientes';
 
 const form = document.querySelector('#patient-form');
 const patientList = document.querySelector('#patient-list');
