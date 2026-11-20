@@ -33,18 +33,72 @@
         <input type="email" class="form-control" id="email" required>
       </div>
 
-      <div class="col-md-2">
+      <div class="col-md-4">
         <label for="nascimento" class="form-label">Nascimento</label>
         <input type="date" class="form-control" id="nascimento" required>
       </div>
 
-      <div class="col-md-2 d-flex align-items-end gap-2">
-        <button type="submit" id="btn-salvar" class="btn btn-primary">
+      <!-- Campos de endereço -->
+      <div class="col-md-2">
+        <label for="cep" class="form-label">CEP</label>
+        <input
+          type="text"
+          class="form-control"
+          id="cep"
+          maxlength="8"
+          inputmode="numeric"
+          placeholder="Somente números"
+        >
+        <div id="cep-ajuda" class="form-text"></div>
+      </div>
+
+      <div class="col-md-5">
+        <label for="logradouro" class="form-label">
+          Logradouro
+        </label>
+        <input
+          type="text"
+          class="form-control"
+          id="logradouro"
+          maxlength="150"
+        >
+      </div>
+
+      <div class="col-md-3">
+        <label for="cidade" class="form-label">Cidade</label>
+        <input
+          type="text"
+          class="form-control"
+          id="cidade"
+          maxlength="100"
+        >
+      </div>
+
+      <div class="col-md-2">
+        <label for="uf" class="form-label">UF</label>
+        <input
+          type="text"
+          class="form-control"
+          id="uf"
+          maxlength="2"
+          placeholder="SP"
+        >
+      </div>
+
+      <div class="col-12 d-flex gap-2">
+        <button
+          type="submit"
+          id="btn-salvar"
+          class="btn btn-primary"
+        >
           Salvar
         </button>
 
-        <button type="button" id="btn-cancelar"
-          class="btn btn-outline-secondary d-none">
+        <button
+          type="button"
+          id="btn-cancelar"
+          class="btn btn-outline-secondary d-none"
+        >
           Cancelar
         </button>
       </div>
@@ -56,18 +110,21 @@
       Carregando pacientes...
     </p>
 
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>E-mail</th>
-          <th>Nascimento</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
+    <div class="table-responsive">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Nascimento</th>
+            <th>Cidade/UF</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
 
-      <tbody id="tabela-pacientes"></tbody>
-    </table>
+        <tbody id="tabela-pacientes"></tbody>
+      </table>
+    </div>
   </div>
 
   <script src="js/app.js"></script>
