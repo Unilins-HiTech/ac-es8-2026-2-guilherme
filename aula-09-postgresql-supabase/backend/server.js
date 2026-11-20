@@ -20,7 +20,57 @@ const CAMPOS_PERMITIDOS = [
   'uf'
 ];
 
-// Converter campos de endereço vazios para null
+// ==========================================
+// INTEGRACAO COM A API DO TELEGRAM
+// ==========================================
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+// Enviar notificacao ao Telegram
+async function enviarNotificacaoTelegram(mensagem) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.warn('Telegram nao configurado nas variaveis de ambiente.');
+    return;
+  }
+
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+  try {
+    const resposta = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: mensagem
+      }),
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (!resposta.ok) {
+      console.error(
+        `Falha no envio ao Telegram. HTTP ${resposta.status}`
+      );
+      return;
+    }
+
+    const resultado = await resposta.json();
+
+    if (!resultado.ok) {
+      console.error('O Telegram nao confirmou o envio.');
+      return;
+    }
+
+    console.log('Notificacao enviada ao Telegram com sucesso.');
+
+  } catch (erro) {
+    console.error('Falha de comunicacao com o Telegram:', erro.message);
+  }
+}
+
+// Converter campos vazios para null
 function textoOuNulo(valor) {
   if (valor === null || valor === undefined) {
     return null;
@@ -29,7 +79,7 @@ function textoOuNulo(valor) {
   return String(valor).trim() || null;
 }
 
-// Normalizar endereço
+// Normalizar endereco
 function lerEndereco(dados) {
   const cep = textoOuNulo(dados.cep);
   const uf = textoOuNulo(dados.uf);
@@ -42,17 +92,17 @@ function lerEndereco(dados) {
   };
 }
 
-// Validar dados dos pacientes
+// Validar os dados dos pacientes
 function validarPaciente(dados, parcial = false) {
   const { nome, email, nascimento } = dados ?? {};
 
   if (!parcial && (!nome || !email || !nascimento)) {
-    return 'Nome, e-mail e nascimento são obrigatórios';
+    return 'Nome, e-mail e nascimento sao obrigatorios';
   }
 
   if (nome !== undefined) {
     if (typeof nome !== 'string' || !nome.trim()) {
-      return 'Informe um nome válido';
+      return 'Informe um nome valido';
     }
   }
 
@@ -61,7 +111,7 @@ function validarPaciente(dados, parcial = false) {
       typeof email !== 'string' ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     ) {
-      return 'Informe um e-mail válido';
+      return 'Informe um e-mail valido';
     }
   }
 
@@ -70,7 +120,7 @@ function validarPaciente(dados, parcial = false) {
       typeof nascimento !== 'string' ||
       !/^\d{4}-\d{2}-\d{2}$/.test(nascimento)
     ) {
-      return 'Informe uma data de nascimento válida';
+      return 'Informe uma data de nascimento valida';
     }
 
     const data = new Date(`${nascimento}T00:00:00Z`);
@@ -79,7 +129,7 @@ function validarPaciente(dados, parcial = false) {
       Number.isNaN(data.getTime()) ||
       data.toISOString().slice(0, 10) !== nascimento
     ) {
-      return 'Informe uma data de nascimento válida';
+      return 'Informe uma data de nascimento valida';
     }
 
     const hoje = new Date();
@@ -90,11 +140,10 @@ function validarPaciente(dados, parcial = false) {
     ].join('-');
 
     if (nascimento > hojeISO) {
-      return 'A data de nascimento não pode ser futura';
+      return 'A data de nascimento nao pode ser futura';
     }
   }
 
-  // Validar campos de endereço
   const camposEndereco = ['cep', 'logradouro', 'cidade', 'uf'];
 
   for (const campo of camposEndereco) {
@@ -103,14 +152,14 @@ function validarPaciente(dados, parcial = false) {
       dados[campo] !== null &&
       typeof dados[campo] !== 'string'
     ) {
-      return `Informe um valor válido para ${campo}`;
+      return `Informe um valor valido para ${campo}`;
     }
   }
 
   const endereco = lerEndereco(dados);
 
   if (endereco.cep !== null && !/^\d{8}$/.test(endereco.cep)) {
-    return 'CEP deve ter 8 dígitos';
+    return 'CEP deve ter 8 digitos';
   }
 
   if (endereco.uf !== null && !/^[A-Z]{2}$/.test(endereco.uf)) {
@@ -118,11 +167,11 @@ function validarPaciente(dados, parcial = false) {
   }
 
   if (endereco.logradouro && endereco.logradouro.length > 150) {
-    return 'Logradouro deve ter no máximo 150 caracteres';
+    return 'Logradouro deve ter no maximo 150 caracteres';
   }
 
   if (endereco.cidade && endereco.cidade.length > 100) {
-    return 'Cidade deve ter no máximo 100 caracteres';
+    return 'Cidade deve ter no maximo 100 caracteres';
   }
 
   return null;
@@ -139,7 +188,7 @@ function tratarErro(res, erro) {
 
   if (erro.code === '23505') {
     return res.status(409).json({
-      erro: 'Este e-mail já está cadastrado'
+      erro: 'Este e-mail ja esta cadastrado'
     });
   }
 
@@ -148,7 +197,7 @@ function tratarErro(res, erro) {
   });
 }
 
-// GET - Listar pacientes e filtrar por nome
+// GET - Listar pacientes
 app.get('/pacientes', async (req, res) => {
   try {
     const nome = req.query.nome;
@@ -168,6 +217,7 @@ app.get('/pacientes', async (req, res) => {
     );
 
     res.json(resultado.rows);
+
   } catch (erro) {
     tratarErro(res, erro);
   }
@@ -183,18 +233,19 @@ app.get('/pacientes/total', async (req, res) => {
     res.json({
       total: Number(resultado.rows[0].count)
     });
+
   } catch (erro) {
     tratarErro(res, erro);
   }
 });
 
-// GET - Buscar paciente pelo ID
+// GET - Buscar paciente por ID
 app.get('/pacientes/:id', async (req, res) => {
   const id = Number(req.params.id);
 
   if (!idValido(id)) {
     return res.status(400).json({
-      erro: 'ID inválido'
+      erro: 'ID invalido'
     });
   }
 
@@ -206,17 +257,18 @@ app.get('/pacientes/:id', async (req, res) => {
 
     if (resultado.rowCount === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nao encontrado'
       });
     }
 
     res.json(resultado.rows[0]);
+
   } catch (erro) {
     tratarErro(res, erro);
   }
 });
 
-// POST - Cadastrar paciente com endereço
+// POST - Cadastrar paciente e notificar Telegram
 app.post('/pacientes', async (req, res) => {
   const dados = req.body ?? {};
   const erro = validarPaciente(dados);
@@ -245,7 +297,19 @@ app.post('/pacientes', async (req, res) => {
       ]
     );
 
-    res.status(201).json(resultado.rows[0]);
+    const paciente = resultado.rows[0];
+
+    // Notifica somente depois que o cadastro foi salvo.
+    // A falha do Telegram nao impede o cadastro.
+    const mensagemTelegram =
+      '✅ Novo paciente cadastrado!\n\n' +
+      'Cadastro realizado com sucesso no sistema.\n' +
+      `ID do paciente: ${paciente.id}`;
+
+    void enviarNotificacaoTelegram(mensagemTelegram);
+
+    res.status(201).json(paciente);
+
   } catch (erro) {
     tratarErro(res, erro);
   }
@@ -257,7 +321,7 @@ app.put('/pacientes/:id', async (req, res) => {
 
   if (!idValido(id)) {
     return res.status(400).json({
-      erro: 'ID inválido'
+      erro: 'ID invalido'
     });
   }
 
@@ -297,11 +361,12 @@ app.put('/pacientes/:id', async (req, res) => {
 
     if (resultado.rowCount === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nao encontrado'
       });
     }
 
     res.json(resultado.rows[0]);
+
   } catch (erro) {
     tratarErro(res, erro);
   }
@@ -313,7 +378,7 @@ app.patch('/pacientes/:id', async (req, res) => {
 
   if (!idValido(id)) {
     return res.status(400).json({
-      erro: 'ID inválido'
+      erro: 'ID invalido'
     });
   }
 
@@ -325,7 +390,7 @@ app.patch('/pacientes/:id', async (req, res) => {
     campos.some(campo => !CAMPOS_PERMITIDOS.includes(campo))
   ) {
     return res.status(400).json({
-      erro: 'Informe ao menos um campo válido para atualizar'
+      erro: 'Informe ao menos um campo valido para atualizar'
     });
   }
 
@@ -366,11 +431,12 @@ app.patch('/pacientes/:id', async (req, res) => {
 
     if (resultado.rowCount === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nao encontrado'
       });
     }
 
     res.json(resultado.rows[0]);
+
   } catch (erro) {
     tratarErro(res, erro);
   }
@@ -382,7 +448,7 @@ app.delete('/pacientes/:id', async (req, res) => {
 
   if (!idValido(id)) {
     return res.status(400).json({
-      erro: 'ID inválido'
+      erro: 'ID invalido'
     });
   }
 
@@ -394,11 +460,12 @@ app.delete('/pacientes/:id', async (req, res) => {
 
     if (resultado.rowCount === 0) {
       return res.status(404).json({
-        erro: 'Paciente não encontrado'
+        erro: 'Paciente nao encontrado'
       });
     }
 
     res.status(204).send();
+
   } catch (erro) {
     tratarErro(res, erro);
   }
